@@ -9,16 +9,7 @@ const postSchema = new Schema({
   username: {
     type: String,
   },
-  comments: [
-    {
-      id: {
-        type: String
-      },
-      body: {
-        type: String
-      },
-    }
-  ],
+  comments: [],
   likes: [],
 });
 

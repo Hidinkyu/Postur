@@ -1,5 +1,3 @@
-const { log } = require('console');
-const { application } = require('express');
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
@@ -23,7 +21,7 @@ mongoose
   .catch(console.error);
 
 app.use('/api/posts', postRouter);
-app.use('/api/user', userRouter)
+app.use('/api/user', userRouter);
 
 app.get('/', (req, res) => {
   return res

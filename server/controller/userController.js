@@ -1,10 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const {
-  validateRegisterInput,
-  validateLoginInput,
-} = require('../utils/validators');
 const { SECRET_KEY } = require('../../config');
 const User = require('../models/Users');
 
@@ -12,93 +8,79 @@ const generateToken = (user) => {
   return jwt.sign(
     {
       id: user.id,
-      email: user.email,
-      DisplayName: user.DisplayName,
+      username: user.username,
     },
     SECRET_KEY,
-    { expiresIn: '2h' },
   );
 };
 
 const SALT = 12;
 
-const UserController = {
+const userController = {
+  async register(req, res, next) {
+    try {
+      // TODO: check to see if username is already registered
+      const checkUser = await User.findOne({ username: req.body.username });
+      if (checkUser) {
+        res.locals = 'Username Already Registered';
+        return next();
+      }
+      // TODO: does password match
+      if (req.body.password !== req.body.confirmPassword) {
+        res.locals = 'Messed up the Confirm Password';
+        return next();
+      }
+      // TODO: if no errors arise create a new user with an encrypted password
+      const newUser = new User({
+        username: req.body.username,
+        password: await bcrypt.hash(req.body.password, SALT),
+      });
+
+      // TODO: save the user info to mongo
+      await newUser.save();
+
+      // TODO: create a token for the user using the new user info
+      const token = generateToken(newUser);
+      res.locals = {
+        id: newUser.id,
+        token,
+      };
+      next();
+      // TODO: create a catch error handler
+    } catch (e) {
+      next({
+        log: 'Error caught registering user',
+        message: { err: e.message },
+      });
+    }
+  },
+
   async login(req, res, next) {
     try {
-      const { errors, valid } = validateLoginInput(
-        req.body.email,
-        req.body.password,
-      );
-      if (!valid) {
-        res.locals = errors;
+      const error = 'Incorrect username or password';
+      // TODO: find the user from the database
+      const user = await User.findOne({ username: req.body.username });
+      // TODO: if there is no user registered to the username inform the user
+      // TODO: check the password from the body to the decrypted passwort from the DB
+      if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
+        res.locals = error;
         return next();
       }
-      const user = await User.findOne({ email: req.body.email });
-      const match = await bcrypt.compare(req.body.password, user.password);
-
-      if (!match || !user) {
-        res.locals = 'Wrong email or password';
-        return next();
-      }
-
+      // TODO: if they match create a token for the user and send it through the res.locals
       const token = generateToken(user);
       res.locals = {
         id: user.id,
         token,
       };
       next();
+      // TODO: create a catch error handler
     } catch (e) {
       next({
-        log: 'Error caught at GET request for User controller',
-        message: e.message,
-      });
-    }
-  },
-
-  async register(req, res, next) {
-    try {
-      const { valid, errors } = validateRegisterInput(
-        req.body.email,
-        req.body.password,
-        req.body.passwordConf,
-      );
-      if (!valid) {
-        res.locals = errors;
-        return next();
-      }
-      const user = await User.findOne({ email: req.body.email });
-      if (user.email) {
-        res.locals = 'Email is already registered';
-        return next();
-      }
-      password = await bcrypt.hash(req.body.password, SALT);
-      const newUser = new User({
-        email: req.body.email,
-        password,
-        createdAt: new Date().toISOString(),
-      });
-      const tok = await newUser.save();
-      const token = jwt.sign(
-        {
-          id: tok.id,
-          email: tok.email,
-        },
-        SECRET_KEY,
-        { expiresIn: '2h' },
-      );
-
-      res.locals = {
-        id: user.id,
-        token,
-      };
-      next();
-    } catch (e) {
-      next({
-        log: 'Error caught at POST request for User controller',
-        message: e.message,
+        log: 'Error caught logging user in',
+        message: { err: e.message },
       });
     }
   },
 };
 
-module.exports = UserController;
+module.exports = userController;

@@ -1,11 +1,11 @@
 const Post = require('../models/Posts');
 
-const PostsController = {
-  async getPosts (req, res, next) {
+const postsController = {
+  async getPosts(req, res, next) {
     try {
-      const posts = await Post.find(); 
+      const posts = await Post.find();
       res.locals.posts = posts;
-      next()
+      next();
     } catch (err) {
       next({
         log: 'Error caught at GET request for Posts controller',
@@ -13,10 +13,11 @@ const PostsController = {
       });
     }
   },
-  createPost (req, res, next){
+  createPost(req, res, next) {
     try {
       const post = new Post({
         body: req.body.text,
+        username: req.user.username,
       });
       post.save();
       res.locals.newPost = post;
@@ -28,10 +29,15 @@ const PostsController = {
       });
     }
   },
-  async deletePost (req, res, next) {
+  async deletePost(req, res, next) {
     try {
-      const result = await Post.findByIdAndDelete(req.params.id);
-      res.locals.deleted = `deleted:\n${result}`
+      const result = await Post.findById(req.params.id);
+      if (result.username === req.user.username) {
+        result.delete();
+        res.locals.deleted = `deleted:\n${result}`;
+      } else {
+        return res.sendStatus(405);
+      }
       next();
     } catch (err) {
       next({
@@ -40,53 +46,60 @@ const PostsController = {
       });
     }
   },
-  async updatePost (req, res, next) {
+  async updatePost(req, res, next) {
     try {
-      const post = await Post.findByIdAndUpdate(req.params.id, {
-        body: req.body.text,
-      });
-      post.save();
-      res.locals.update = post;
+      const post = await Post.findById(req.params.id);
+      if (post.username === req.user.username) {
+        await Post.findByIdAndUpdate(post, { body: req.body.text });
+        post.save();
+        res.locals.update = post;
+      } else {
+        return res.sendStatus(405);
+      }
       next();
     } catch (err) {
       next({
-        log: 'Error caught at PUT (Update Message) request for Posts controller',
+        log: 'Error caught at PATCH (Update Message) request for Posts controller',
         message: err.message,
       });
     }
   },
-  async likes (req, res, next) {
+  async like(req, res, next) {
     try {
       const post = await Post.findById(req.params.id);
-      if (post.likes.includes(req.body.userID)) {
-        post.likes = post.likes.filter((user) => user !== req.body.userID);
+      if (post.likes.includes(req.user.username)) {
+        post.likes = post.likes.filter((user) => user !== req.user.username);
       } else {
-        post.likes.push(req.body.userID);
+        post.likes.push(req.user.username);
       }
       post.save();
       res.locals.likes = post;
-      next()
+      next();
     } catch (err) {
       next({
-        log: 'Error caught at PUT (Likes) request for Posts controller',
+        log: 'Error caught at PATCH (Likes) request for Posts controller',
         message: err.message,
       });
     }
   },
-  async comments (req, res, next){
+  async comment(req, res, next) {
     try {
       const post = await Post.findById(req.params.id);
-      post.comments.push(req.body.comment);
+      const comment = {
+        username: req.user.username,
+        body: req.body.comment,
+      };
+      post.comments.push(comment);
       post.save();
       res.locals.comments = post;
-      next()
+      next();
     } catch (err) {
       next({
-        log: 'Error caught at PUT (comment) request for Posts controller',
+        log: 'Error caught at PATCH (comment) request for Posts controller',
         message: err.message,
       });
     }
-  }
-}
+  },
+};
 
-module.exports = PostsController
+module.exports = postsController;
