@@ -4,16 +4,21 @@ const router = express.Router();
 const postsController = require('../controller/postController');
 const checkAuth = require('../controller/checkAuth');
 
-router.get('/', checkAuth, postsController.getPosts, (req, res) => {
+router.get('/', postsController.getPosts, (req, res) => {
   res.status(200).json(res.locals.posts);
 });
 
-router.post('/create', checkAuth, postsController.createPost, (req, res) => {
-  res.status(200).json(res.locals.newPost);
-});
+router.post(
+  '/create/:auth',
+  checkAuth,
+  postsController.createPost,
+  (req, res) => {
+    res.status(200).json(res.locals.newPost);
+  },
+);
 
 router.delete(
-  '/delete/:id',
+  '/delete/:id/:auth',
   checkAuth,
   postsController.deletePost,
   (req, res) => {
@@ -22,7 +27,7 @@ router.delete(
 );
 
 router.patch(
-  '/update/:id',
+  '/update/:id/:auth',
   checkAuth,
   postsController.updatePost,
   (req, res) => {
@@ -30,12 +35,17 @@ router.patch(
   },
 );
 
-router.patch('/like/:id', checkAuth, postsController.like, (req, res) => {
+router.patch('/like/:id/:auth', checkAuth, postsController.like, (req, res) => {
   res.status(200).json(res.locals.likes);
 });
 
-router.patch('/comment/:id', checkAuth, postsController.comment, (req, res) => {
-  res.status(200).json(res.locals.comments);
-});
+router.patch(
+  '/comment/:id/:auth',
+  checkAuth,
+  postsController.comment,
+  (req, res) => {
+    res.status(200).json(res.locals.comments);
+  },
+);
 
 module.exports = router;

@@ -33,10 +33,13 @@ const postsController = {
     try {
       const result = await Post.findById(req.params.id);
       if (result.username === req.user.username) {
+        console.log('post deleted successfully');
         result.delete();
         res.locals.deleted = `deleted:\n${result}`;
       } else {
-        return res.sendStatus(405);
+        return res
+          .status(400)
+          .json({ message: 'you are not allowed to delete' });
       }
       next();
     } catch (err) {
@@ -50,9 +53,8 @@ const postsController = {
     try {
       const post = await Post.findById(req.params.id);
       if (post.username === req.user.username) {
-        await Post.findByIdAndUpdate(post, { body: req.body.text });
+        post.body = req.body.text;
         post.save();
-        res.locals.update = post;
       } else {
         return res.sendStatus(405);
       }
@@ -83,13 +85,14 @@ const postsController = {
     }
   },
   async comment(req, res, next) {
+    console.log(req.body);
     try {
       const post = await Post.findById(req.params.id);
       const comment = {
         username: req.user.username,
         body: req.body.comment,
       };
-      post.comments.push(comment);
+      post.comments.unshift(comment);
       post.save();
       res.locals.comments = post;
       next();

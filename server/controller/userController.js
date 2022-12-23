@@ -22,13 +22,13 @@ const userController = {
       // TODO: check to see if username is already registered
       const checkUser = await User.findOne({ username: req.body.username });
       if (checkUser) {
-        res.locals = 'Username Already Registered';
-        return next();
+        return res.status(200).json({ failed: 'Username Already Registered' });
       }
       // TODO: does password match
       if (req.body.password !== req.body.confirmPassword) {
-        res.locals = 'Messed up the Confirm Password';
-        return next();
+        return res
+          .status(200)
+          .json({ failed: 'Messed up Confirming Password' });
       }
       // TODO: if no errors arise create a new user with an encrypted password
       const newUser = new User({
@@ -49,7 +49,7 @@ const userController = {
       // TODO: create a catch error handler
     } catch (e) {
       next({
-        log: 'Error caught registering user',
+        log: 'Error caught registering user ' + e.message,
         message: { err: e.message },
       });
     }
@@ -57,14 +57,14 @@ const userController = {
 
   async login(req, res, next) {
     try {
-      const error = 'Incorrect username or password';
       // TODO: find the user from the database
       const user = await User.findOne({ username: req.body.username });
       // TODO: if there is no user registered to the username inform the user
       // TODO: check the password from the body to the decrypted passwort from the DB
       if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-        res.locals = error;
-        return next();
+        return res
+          .status(200)
+          .json({ failed: 'Incorrect username or password' });
       }
       // TODO: if they match create a token for the user and send it through the res.locals
       const token = generateToken(user);

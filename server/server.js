@@ -9,6 +9,7 @@ const app = express();
 const postRouter = require('./routes/Posts.js');
 const userRouter = require('./routes/Users.js');
 
+
 app.use(express.json());
 
 mongoose.set('strictQuery', false);
